@@ -1,4 +1,5 @@
 #include <iostream>
+
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL.h>
 
@@ -9,6 +10,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    // FIXME: use SDL_WINDOW_VULKAN
     SDL_Window* window = SDL_CreateWindow("Camel Engine", 800, 600, NULL);
 
     if (!window) {
