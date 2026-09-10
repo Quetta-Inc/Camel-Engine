@@ -9,7 +9,7 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    SDL_Window* window = SDL_CreateWindow("Camel Engine", 800, 600, SDL_WINDOW_VULKAN);
+    SDL_Window* window = SDL_CreateWindow("Camel Engine", 800, 600, NULL);
 
     if (!window) {
         std::cerr << "Failed to create window: " << SDL_GetError() << std::endl;
@@ -31,5 +31,5 @@ int main() {
     SDL_DestroyWindow(window);
     SDL_Quit();
     return EXIT_SUCCESS;
-    
+
 }
