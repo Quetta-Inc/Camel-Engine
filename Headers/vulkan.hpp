@@ -2,7 +2,7 @@
 
 #include <SDL3/SDL.h>
 #include <vulkan/vulkan.h>
-// Необходимо подключить GLM в проекте (через CMake)
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -56,7 +56,7 @@ struct VulkanContext {
     VkBuffer indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
 
-    // Uniform Buffers (по одному на каждый кадр в полете)
+    // Uniform buffers (one per frame in flight)
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
