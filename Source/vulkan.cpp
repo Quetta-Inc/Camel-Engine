@@ -14,7 +14,7 @@
 #define CAMEL_ENGINE_SHADER_DIR "."
 #endif
 
-// Геометрия 3D Куба
+// 3D cube geometry
 const std::vector<Vertex> vertices = {
     {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, // 0
     {{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}}, // 1
@@ -187,7 +187,7 @@ void updateUniformBuffer(VulkanContext& ctx, uint32_t currentImage) {
     
     ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f), ctx.swapchainExtent.width / (float)ctx.swapchainExtent.height, 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1; // Исправление Y-координаты для Vulkan
+    ubo.proj[1][1] *= -1; // Fix the Y-coordinate for Vulkan
 
     memcpy(ctx.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
@@ -287,7 +287,7 @@ bool initVulkan(SDL_Window* window, VulkanContext& ctx) {
             ctx.swapchainImageViews[i] = createImageView(ctx.device, ctx.swapchainImages[i], ctx.swapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
         }
 
-        // --- Render Pass с буфером глубины ---
+        // --- Render pass with depth buffer ---
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = ctx.swapchainImageFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -612,7 +612,7 @@ bool drawFrame(VulkanContext& ctx) {
     uint32_t imageIndex;
     vkAcquireNextImageKHR(ctx.device, ctx.swapchain, UINT64_MAX, ctx.imageAvailableSemaphores[ctx.currentFrame], VK_NULL_HANDLE, &imageIndex);
     
-    updateUniformBuffer(ctx, ctx.currentFrame); // Обновляем матрицы
+    updateUniformBuffer(ctx, ctx.currentFrame); // Update matrices
     
     vkResetFences(ctx.device, 1, &ctx.inFlightFences[ctx.currentFrame]);
     vkResetCommandBuffer(ctx.commandBuffers[ctx.currentFrame], 0);
