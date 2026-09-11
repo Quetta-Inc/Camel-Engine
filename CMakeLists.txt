@@ -5,14 +5,18 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
 
+# 1. Поиск пакетов
 find_package(SDL3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(glm CONFIG REQUIRED)
+
 find_program(GLSLANG_VALIDATOR NAMES glslangValidator HINTS "$ENV{VULKAN_SDK}/Bin" "D:/VulkanSDK/Bin" "D:/VulkanSDK/1.4.357.0/Bin")
 
 if(NOT GLSLANG_VALIDATOR)
     message(FATAL_ERROR "glslangValidator not found in PATH or VULKAN_SDK")
 endif()
 
+# 2. Настройка шейдеров
 set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shaders)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders)
 
@@ -32,9 +36,11 @@ add_custom_target(vulkan_shaders DEPENDS
     ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/frag.spv
 )
 
+# 3. Создание исполняемого файла
 add_executable(${PROJECT_NAME} main.cpp Source/vulkan.cpp)
 add_dependencies(${PROJECT_NAME} vulkan_shaders)
 
+# 4. Копирование шейдеров после сборки
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -46,6 +52,7 @@ add_custom_command(
     COMMENT "Copying shaders to executable directory"
 )
 
+# 5. Настройка параметров таргета (линковка и инклуды)
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     CAMEL_ENGINE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
     CAMEL_ENGINE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
@@ -58,7 +65,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm ${Vulkan_LIBRARIES})
 
 add_test(
     NAME vulkan_init_smoke
