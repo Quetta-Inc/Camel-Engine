@@ -21,5 +21,5 @@ void Logger::log(LogLevel level, const std::string& message) {
     char timeStr[20];
     std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &tm);
 
-    std::cout << "[" << timeStr << "] [" << levelStr << "] " << message << std::endl;
+    std::cout << "[" << timeStr << "] [" << levelStr << "] " << message << " (" << __FILE__ << ":" << __LINE__ << ")" << std::endl;
 }
