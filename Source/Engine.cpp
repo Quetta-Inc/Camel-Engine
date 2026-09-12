@@ -32,6 +32,11 @@ Engine::~Engine() {
     Logger::log(Logger::LogLevel::INFO, "Engine shut down cleanly.");
 }
 
+void Engine::setMouseLock(bool locked) {
+    isMouseLocked = locked;
+    SDL_SetWindowRelativeMouseMode(window, locked);
+}
+
 void Engine::initWindow() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         throw std::runtime_error("Failed to initialize SDL: " + std::string(SDL_GetError()));
@@ -76,24 +81,26 @@ void Engine::initGraphics() {
     }
 }
 
-void Engine::addPrimitive(const MeshData& mesh, glm::vec3 position) {
-    RenderObject obj;
-    obj.position = position;
-    obj.indexCount = static_cast<uint32_t>(mesh.indices.size());
+RenderObject* Engine::addPrimitive(const MeshData& mesh, glm::vec3 position) {
+    auto obj = std::make_unique<RenderObject>();
+    obj->transform.position = position;
+    obj->indexCount = static_cast<uint32_t>(mesh.indices.size());
 
     VkDeviceSize vertexSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
     VulkanBuffer stagingV(*device, vertexSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     stagingV.mapMemory((void*)mesh.vertices.data(), vertexSize);
-    obj.vertexBuffer = std::make_unique<VulkanBuffer>(*device, vertexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    copyBuffer(stagingV.getBuffer(), obj.vertexBuffer->getBuffer(), vertexSize);
+    obj->vertexBuffer = std::make_unique<VulkanBuffer>(*device, vertexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    copyBuffer(stagingV.getBuffer(), obj->vertexBuffer->getBuffer(), vertexSize);
 
     VkDeviceSize indexSize = sizeof(mesh.indices[0]) * mesh.indices.size();
     VulkanBuffer stagingI(*device, indexSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     stagingI.mapMemory((void*)mesh.indices.data(), indexSize);
-    obj.indexBuffer = std::make_unique<VulkanBuffer>(*device, indexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    copyBuffer(stagingI.getBuffer(), obj.indexBuffer->getBuffer(), indexSize);
+    obj->indexBuffer = std::make_unique<VulkanBuffer>(*device, indexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    copyBuffer(stagingI.getBuffer(), obj->indexBuffer->getBuffer(), indexSize);
 
+    RenderObject* ptr = obj.get();
     sceneObjects.push_back(std::move(obj));
+    return ptr;
 }
 
 void Engine::createUniformBuffers() {
@@ -190,18 +197,24 @@ void Engine::recordDrawCommands(VkCommandBuffer commandBuffer, uint32_t imageInd
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
 
     for (const auto& obj : sceneObjects) {
-        VkBuffer vBuffers[] = { obj.vertexBuffer->getBuffer() };
+        VkBuffer vBuffers[] = { obj->vertexBuffer->getBuffer() };
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, obj.indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(commandBuffer, obj->indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getLayout(), 0, 1, &descriptorSets[renderer->getCurrentFrame()], 0, nullptr);
 
-        glm::mat4 model = obj.getModelMatrix();
+        // Fetch the model matrix from the Transform struct
+        glm::mat4 model = obj->transform.getModelMatrix();
         vkCmdPushConstants(commandBuffer, pipeline->getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model);
 
-        vkCmdDrawIndexed(commandBuffer, obj.indexCount, 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, obj->indexCount, 1, 0, 0, 0);
     }
-    vkCmdEndRenderPass(commandBuffer);
+    vkCmdEndRenderPass(commandBuffer);  
+}
+
+bool Engine::isKeyPressed(SDL_Scancode key) const {
+    const bool* state = SDL_GetKeyboardState(NULL);
+    return state[key];
 }
 
 void Engine::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
@@ -327,6 +340,8 @@ void Engine::run() {
     bool isRunning = true;
     SDL_Event event;
 
+    start(); 
+
     while (isRunning) {
         float currentFrameTime = SDL_GetTicks() / 1000.0f;
         float deltaTime = currentFrameTime - lastFrameTime;
@@ -336,12 +351,24 @@ void Engine::run() {
             if (event.type == SDL_EVENT_QUIT) {
                 isRunning = false;
             } else if (event.type == SDL_EVENT_MOUSE_MOTION) {
-                camera.processMouseMovement(event.motion.xrel, event.motion.yrel);
+                // Only move the camera if the mouse is locked
+                if (isMouseLocked) {
+                    camera.processMouseMovement(event.motion.xrel, event.motion.yrel);
+                }
+            } else if (event.type == SDL_EVENT_KEY_DOWN) {
+                // Fire the new event hook (and ignore key holding/repeating)
+                if (!event.key.repeat) {
+                    onKeyDown(event.key.scancode);
+                }
             }
         }
 
-        const bool* keys = SDL_GetKeyboardState(NULL);
-        camera.processKeyboard(keys, deltaTime);
+        if (isMouseLocked) {
+            const bool* keys = SDL_GetKeyboardState(NULL);
+            camera.processKeyboard(keys, deltaTime);
+        }
+
+        update(deltaTime);
 
         uint32_t imageIndex;
         VkCommandBuffer cmdBuffer = renderer->beginFrame(imageIndex);
