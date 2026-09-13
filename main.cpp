@@ -7,12 +7,14 @@
 #include <string>
 
 int main(int argc, char* argv[]) {
+    const bool smokeTest = argc > 1 && std::string(argv[1]) == "--smoke-test";
+
     try {
         Engine app;
         app.addPrimitive(Primitive::createCube(), glm::vec3(-1.5f, 0.0f, 0.0f));
         app.addPrimitive(Primitive::createSphere(32, 32), glm::vec3(1.5f, 0.0f, 0.0f));
         app.addPrimitive(Primitive::createCube(), glm::vec3(0.0f, 2.0f, 0.0f));
-        app.run();
+        app.run(smokeTest);
 
     } catch (const std::exception& e) {
 

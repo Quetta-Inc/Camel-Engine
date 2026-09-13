@@ -4,7 +4,12 @@
 #include <fstream>
 #include <stdexcept>
 #include <array>
+#include <filesystem>
 #include <glm/glm.hpp>
+
+#ifndef CAMEL_ENGINE_SHADER_DIR
+#define CAMEL_ENGINE_SHADER_DIR "."
+#endif
 
 VulkanPipeline::VulkanPipeline(const VulkanDevice& device, const VulkanSwapchain& swapchain) : deviceCore(device) {
     VkFormat depthFormat = VK_FORMAT_D32_SFLOAT; 
@@ -122,8 +127,9 @@ void VulkanPipeline::createDescriptorSetLayout() {
 }
 
 void VulkanPipeline::createGraphicsPipeline(VkExtent2D swapchainExtent) {
-    auto vertShaderCode = readFile("vert.spv");
-    auto fragShaderCode = readFile("frag.spv");
+    const std::filesystem::path shaderDirectory = CAMEL_ENGINE_SHADER_DIR;
+    auto vertShaderCode = readFile((shaderDirectory / "vert.spv").string());
+    auto fragShaderCode = readFile((shaderDirectory / "frag.spv").string());
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 

@@ -3,6 +3,11 @@
 #include "Headers/Vulkan.hpp" 
 #include <stdexcept>
 #include <array>
+#include <filesystem>
+
+#ifndef CAMEL_ENGINE_ASSET_DIR
+#define CAMEL_ENGINE_ASSET_DIR "."
+#endif
 
 Engine::Engine() {
     initWindow();
@@ -48,7 +53,8 @@ void Engine::initGraphics() {
     swapchain = std::make_unique<VulkanSwapchain>(*device);
     pipeline = std::make_unique<VulkanPipeline>(*device, *swapchain);
     renderer = std::make_unique<VulkanRenderer>(*device, *swapchain);
-    texture = std::make_unique<VulkanTexture>(*device, "texture.png");
+    const auto texturePath = std::filesystem::path(CAMEL_ENGINE_ASSET_DIR) / "texture.png";
+    texture = std::make_unique<VulkanTexture>(*device, texturePath.string());
 
     createUniformBuffers();
     createDescriptorPoolAndSets();
@@ -323,7 +329,7 @@ void Engine::createDepthResources() {
     }
 }
 
-void Engine::run() {
+void Engine::run(bool smokeTest) {
     bool isRunning = true;
     SDL_Event event;
 
@@ -348,5 +354,9 @@ void Engine::run() {
         updateUniformBuffer(renderer->getCurrentFrame());
         recordDrawCommands(cmdBuffer, imageIndex);
         renderer->endFrame(cmdBuffer, imageIndex);
+
+        if (smokeTest) {
+            isRunning = false;
+        }
     }
 }

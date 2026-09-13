@@ -7,13 +7,17 @@
 #include <stb_image.h>
 
 VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& filepath) : deviceCore(device) {
-    int texWidth, texHeight, texChannels;
+    int texWidth = 0;
+    int texHeight = 0;
+    int texChannels = 0;
     stbi_uc* pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     if (!pixels) {
-        throw std::runtime_error("Failed to load texture image!");
+        const char* reason = stbi_failure_reason();
+        throw std::runtime_error("Failed to load texture image '" + filepath + "': " + (reason ? reason : "unknown error"));
     }
+
+    VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth) * static_cast<VkDeviceSize>(texHeight) * 4;
 
     // 1. Stage the image data using our new VulkanBuffer class
     VulkanBuffer stagingBuffer(deviceCore, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);

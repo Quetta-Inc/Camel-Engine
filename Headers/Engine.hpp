@@ -33,7 +33,7 @@ public:
     Engine(const Engine&) = delete;
     Engine& operator=(const Engine&) = delete;
 
-    void run();
+    void run(bool smokeTest = false);
     void addPrimitive(const MeshData& mesh, glm::vec3 position);
 
 private:

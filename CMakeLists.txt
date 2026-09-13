@@ -16,6 +16,12 @@ if(NOT GLSLANG_VALIDATOR)
 endif()
 
 set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shaders)
+set(TEXTURE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/texture.png)
+
+if(NOT EXISTS ${TEXTURE_FILE})
+    message(FATAL_ERROR "Required texture is missing: ${TEXTURE_FILE}")
+endif()
+
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders)
 
 add_custom_command(
@@ -58,6 +64,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/frag.spv
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/frag.spv
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${TEXTURE_FILE}
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/texture.png
     COMMENT "Copying shaders to executable directory"
 )
 
@@ -65,6 +74,11 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     CAMEL_ENGINE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
     CAMEL_ENGINE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
     CAMEL_ENGINE_SHADER_DIR="$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+    CAMEL_ENGINE_ASSET_DIR="$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -73,28 +87,24 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Dependencies/stb
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-)
-
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm ${Vulkan_LIBRARIES})
-
-add_test(
-    NAME vulkan_cube_smoke
-    COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
-)
 
 add_test(
     NAME shader_artifacts
     COMMAND ${CMAKE_COMMAND}
         "-DVERT_SHADER=$<TARGET_FILE_DIR:${PROJECT_NAME}>/vert.spv"
         "-DFRAG_SHADER=$<TARGET_FILE_DIR:${PROJECT_NAME}>/frag.spv"
+        "-DTEXTURE_FILE=$<TARGET_FILE_DIR:${PROJECT_NAME}>/texture.png"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/Tests/verify_shaders.cmake
 )
 
-set_tests_properties(vulkan_cube_smoke shader_artifacts PROPERTIES
+add_test(
+    NAME vulkan_engine_smoke
+    COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
+)
+
+set_tests_properties(vulkan_engine_smoke shader_artifacts PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
     TIMEOUT 30
 )
