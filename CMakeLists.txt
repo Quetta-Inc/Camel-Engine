@@ -49,12 +49,18 @@ add_custom_command(
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     CAMEL_ENGINE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
     CAMEL_ENGINE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
+    CAMEL_ENGINE_SHADER_DIR="$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES})
 
+<<<<<<< HEAD
 set_target_properties(${PROJECT_NAME} PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
 )
@@ -65,6 +71,22 @@ add_test(
 )
 
 set_tests_properties(vulkan_init_smoke PROPERTIES
+=======
+add_test(
+    NAME shader_artifacts
+    COMMAND ${CMAKE_COMMAND}
+        "-DVERT_SHADER=$<TARGET_FILE_DIR:${PROJECT_NAME}>/vert.spv"
+        "-DFRAG_SHADER=$<TARGET_FILE_DIR:${PROJECT_NAME}>/frag.spv"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/Tests/verify_shaders.cmake
+)
+
+add_test(
+    NAME vulkan_smoke
+    COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
+)
+
+set_tests_properties(shader_artifacts vulkan_smoke PROPERTIES
+>>>>>>> d84d8fc (test: add shader and Vulkan smoke checks)
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
     TIMEOUT 30
 )

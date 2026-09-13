@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 #include <iostream>
+#include <string>
 
 #include "Headers/initialization.hpp"
 #include "Headers/vulkan.hpp"
@@ -42,6 +43,18 @@ int main(int argc, char* argv[]) {
 
     bool isRunning = true;
     SDL_Event event;
+
+    if (smokeTest) {
+        if (!drawFrame(vulkanContext)) {
+            std::cerr << "Smoke test failed to draw a frame!" << std::endl;
+            vkDeviceWaitIdle(vulkanContext.device);
+            cleanupVulkan(vulkanContext);
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+            return -1;
+        }
+        isRunning = false;
+    }
 
     std::cout << "Starting main application loop..." << std::endl;
     while (isRunning) {

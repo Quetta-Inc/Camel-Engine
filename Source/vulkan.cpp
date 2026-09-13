@@ -6,6 +6,11 @@
 #include <vector>
 #include <set>
 #include <string>
+#include <filesystem>
+
+#ifndef CAMEL_ENGINE_SHADER_DIR
+#define CAMEL_ENGINE_SHADER_DIR "."
+#endif
 
 // Helper function to read compiled shader binaries (SPIR-V)
 static std::vector<char> readFile(const std::string& filename) {
@@ -216,8 +221,9 @@ bool initVulkan(SDL_Window* window, VulkanContext& ctx) {
         }
 
         // 8. Creating Graphics Pipeline
-        auto vertShaderCode = readFile("vert.spv");
-        auto fragShaderCode = readFile("frag.spv");
+        const std::filesystem::path shaderDirectory = CAMEL_ENGINE_SHADER_DIR;
+        auto vertShaderCode = readFile((shaderDirectory / "vert.spv").string());
+        auto fragShaderCode = readFile((shaderDirectory / "frag.spv").string());
 
         VkShaderModule vertShaderModule = createShaderModule(ctx.device, vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(ctx.device, fragShaderCode);
