@@ -23,7 +23,6 @@ foreach(shader IN ITEMS VERT_SHADER FRAG_SHADER)
     message(STATUS "Valid SPIR-V shader: ${${shader}} (${shader_size} bytes)")
 endforeach()
 
-<<<<<<< HEAD
 if(NOT DEFINED TEXTURE_FILE)
     message(FATAL_ERROR "TEXTURE_FILE was not provided")
 endif()
@@ -38,19 +37,3 @@ if(texture_size LESS 8)
 endif()
 
 message(STATUS "Texture asset exists: ${TEXTURE_FILE} (${texture_size} bytes)")
-=======
-if(NOT DEFINED TEXTURE_FILE)
-    message(FATAL_ERROR "TEXTURE_FILE was not provided")
-endif()
-
-if(NOT EXISTS "${TEXTURE_FILE}")
-    message(FATAL_ERROR "Texture file does not exist: ${TEXTURE_FILE}")
-endif()
-
-file(SIZE "${TEXTURE_FILE}" texture_size)
-if(texture_size LESS 8)
-    message(FATAL_ERROR "Texture file is empty or truncated: ${TEXTURE_FILE}")
-endif()
-
-message(STATUS "Texture asset exists: ${TEXTURE_FILE} (${texture_size} bytes)")
->>>>>>> 710d9fe (test: add controls engine smoke test)
