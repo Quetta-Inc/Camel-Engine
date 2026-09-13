@@ -100,11 +100,11 @@ add_test(
 )
 
 add_test(
-    NAME vulkan_engine_smoke
+    NAME vulkan_controls_smoke
     COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
 )
 
-set_tests_properties(vulkan_engine_smoke shader_artifacts PROPERTIES
+set_tests_properties(vulkan_controls_smoke shader_artifacts PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
     TIMEOUT 30
 )
