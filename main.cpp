@@ -49,7 +49,6 @@ int main(int argc, char* argv[]) {
                 isRunning = false;
             }
         }
-
         if (vulkanContext.device != VK_NULL_HANDLE) {
             vkDeviceWaitIdle(vulkanContext.device);
         }
