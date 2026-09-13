@@ -14,6 +14,7 @@ protected:
         Logger::log(Logger::LogLevel::INFO, "Setting up the scene...");
         camera.position = glm::vec3(0.0f, 2.0f, 6.0f);
         
+        playerCube = addPrimitive(Primitive::createCube(), glm::vec3(-2.0f, 0.0f, 0.0f));
         floatingSphere = addPrimitive(Primitive::createSphere(32, 32), glm::vec3(2.0f, 1.0f, 0.0f));
     }
     // NEW: Listen for singular key presses
