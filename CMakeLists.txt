@@ -60,18 +60,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES})
 
-<<<<<<< HEAD
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-)
-
 add_test(
     NAME vulkan_init_smoke
     COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
 )
 
-set_tests_properties(vulkan_init_smoke PROPERTIES
-=======
 add_test(
     NAME shader_artifacts
     COMMAND ${CMAKE_COMMAND}
@@ -85,8 +78,7 @@ add_test(
     COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
 )
 
-set_tests_properties(shader_artifacts vulkan_smoke PROPERTIES
->>>>>>> d84d8fc (test: add shader and Vulkan smoke checks)
+set_tests_properties(vulkan_init_smoke shader_artifacts vulkan_smoke PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
     TIMEOUT 30
 )
