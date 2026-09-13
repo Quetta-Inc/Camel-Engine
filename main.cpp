@@ -5,8 +5,11 @@
 
 #include "Headers/initialization.hpp"
 #include "Headers/vulkan.hpp"
+#include <string>
 
 int main(int argc, char* argv[]) {
+    const bool smokeTest = argc > 1 && std::string(argv[1]) == "--smoke-test";
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::cerr << "Критическая ошибка: SDL_Init сбой: " << SDL_GetError() << std::endl;
         return -1;
@@ -26,6 +29,14 @@ int main(int argc, char* argv[]) {
         SDL_DestroyWindow(window);
         SDL_Quit();
         return -1;
+    }
+
+    if (smokeTest) {
+        vkDeviceWaitIdle(vulkanContext.device);
+        cleanupVulkan(vulkanContext);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 0;
     }
 
     bool isRunning = true;
