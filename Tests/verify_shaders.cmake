@@ -22,3 +22,16 @@ foreach(shader IN ITEMS VERT_SHADER FRAG_SHADER)
 
     message(STATUS "Valid SPIR-V shader: ${${shader}} (${shader_size} bytes)")
 endforeach()
+
+if(DEFINED TEXTURE_FILE)
+    if(NOT EXISTS "${TEXTURE_FILE}")
+        message(FATAL_ERROR "Texture file does not exist: ${TEXTURE_FILE}")
+    endif()
+
+    file(SIZE "${TEXTURE_FILE}" texture_size)
+    if(texture_size LESS 1)
+        message(FATAL_ERROR "Texture file is empty: ${TEXTURE_FILE}")
+    endif()
+
+    message(STATUS "Texture asset present: ${TEXTURE_FILE} (${texture_size} bytes)")
+endif()
