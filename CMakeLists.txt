@@ -61,7 +61,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} $
 target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES})
 
 add_test(
-    NAME vulkan_init_smoke
+    NAME vulkan_triangle_smoke
     COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
 )
 
@@ -73,12 +73,7 @@ add_test(
         -P ${CMAKE_CURRENT_SOURCE_DIR}/Tests/verify_shaders.cmake
 )
 
-add_test(
-    NAME vulkan_smoke
-    COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
-)
-
-set_tests_properties(vulkan_init_smoke shader_artifacts vulkan_smoke PROPERTIES
+set_tests_properties(vulkan_triangle_smoke shader_artifacts PROPERTIES
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
     TIMEOUT 30
 )
