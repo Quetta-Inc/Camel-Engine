@@ -1,0 +1,13 @@
+{
+  "name": "camel-engine",
+  "version": "1.0.0",
+  "dependencies": [
+    {
+      "name": "sdl3",
+      "features": [
+        "vulkan"
+      ]
+    },
+    "glm"
+  ]
+}
