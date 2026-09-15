@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(CAMEL_ENGINE_BUILD_TESTS "Build Camel Engine unit and smoke tests" ON)
+
 find_package(SDL3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -82,7 +84,7 @@ target_link_libraries(CamelEngine
     PUBLIC SDL3::SDL3 glm::glm Vulkan::Vulkan
 )
 
-add_executable(Camel-Engine src/main.cpp)
+add_executable(Camel-Engine main.cpp)
 target_link_libraries(Camel-Engine PRIVATE CamelEngine)
 add_dependencies(Camel-Engine camel_engine_shaders)
 target_compile_definitions(Camel-Engine PRIVATE
@@ -95,5 +97,50 @@ set_target_properties(Camel-Engine PROPERTIES
 )
 
 enable_testing()
-add_test(NAME vulkan_triangle_smoke COMMAND Camel-Engine --smoke-test)
-set_tests_properties(vulkan_triangle_smoke PROPERTIES TIMEOUT 30)
+
+if(CAMEL_ENGINE_BUILD_TESTS)
+    add_executable(camel_test_primitive tests/PrimitiveTests.cpp)
+    target_link_libraries(camel_test_primitive PRIVATE CamelEngine)
+
+    add_executable(camel_test_camera tests/CameraTests.cpp)
+    target_link_libraries(camel_test_camera PRIVATE CamelEngine)
+
+    add_executable(camel_test_scene tests/SceneTests.cpp)
+    target_link_libraries(camel_test_scene PRIVATE CamelEngine)
+
+    add_executable(camel_test_logger tests/LoggerTests.cpp)
+    target_link_libraries(camel_test_logger PRIVATE CamelEngine)
+
+    add_executable(camel_test_vulkan_policy tests/VulkanPolicyTests.cpp)
+    target_link_libraries(camel_test_vulkan_policy PRIVATE CamelEngine)
+
+    add_executable(camel_test_vulkan_components tests/VulkanComponentsTests.cpp)
+    target_link_libraries(camel_test_vulkan_components PRIVATE CamelEngine)
+    add_dependencies(camel_test_vulkan_components camel_engine_shaders)
+    target_compile_definitions(camel_test_vulkan_components PRIVATE
+        CAMEL_ENGINE_TEST_SHADER_DIR="${CAMEL_ENGINE_SHADER_BINARY_DIR}"
+        CAMEL_ENGINE_TEST_ASSET_DIR="${CAMEL_ENGINE_ASSET_DIR}"
+    )
+
+    add_test(NAME primitive_unit COMMAND camel_test_primitive)
+    add_test(NAME camera_unit COMMAND camel_test_camera)
+    add_test(NAME scene_unit COMMAND camel_test_scene)
+    add_test(NAME logger_unit COMMAND camel_test_logger)
+    add_test(NAME vulkan_policy_unit COMMAND camel_test_vulkan_policy)
+    add_test(NAME vulkan_components_smoke COMMAND camel_test_vulkan_components)
+    add_test(NAME engine_smoke COMMAND Camel-Engine --smoke-test)
+
+    add_test(
+        NAME shader_and_asset_artifacts
+        COMMAND ${CMAKE_COMMAND}
+            "-DVERT_SHADER=${CAMEL_ENGINE_SHADER_BINARY_DIR}/vert.spv"
+            "-DFRAG_SHADER=${CAMEL_ENGINE_SHADER_BINARY_DIR}/frag.spv"
+            "-DTEXTURE_FILE=${CAMEL_ENGINE_ASSET_DIR}/texture.png"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_shaders.cmake"
+    )
+
+    set_tests_properties(
+        vulkan_components_smoke engine_smoke shader_and_asset_artifacts
+        PROPERTIES TIMEOUT 30
+    )
+endif()
