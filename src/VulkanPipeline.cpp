@@ -123,8 +123,8 @@ void VulkanPipeline::createGraphicsPipeline(
 
     const std::array<VkVertexInputAttributeDescription, 3> attributes = {{
         {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)},
-        {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)},
-        {0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord)}
+        {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)},
+        {2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord)}
     }};
 
     VkPipelineVertexInputStateCreateInfo vertexInput{};

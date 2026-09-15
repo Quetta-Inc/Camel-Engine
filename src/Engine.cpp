@@ -220,7 +220,7 @@ void Engine::recordDrawCommands(VkCommandBuffer commandBuffer, uint32_t imageInd
     renderPassInfo.renderArea.extent = swapchain->getExtent();
 
     const std::array<VkClearValue, 2> clearValues = {{
-        {{{0.0f, 0.0f, 0.0f, 1.0f}}},
+        {{{0.03f, 0.06f, 0.12f, 1.0f}}},
         {{{1.0f, 0}}}
     }};
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
