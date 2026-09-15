@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(SDL3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 find_program(GLSLANG_VALIDATOR
     NAMES glslangValidator
@@ -20,6 +21,7 @@ endif()
 
 set(CAMEL_ENGINE_SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders")
 set(CAMEL_ENGINE_SHADER_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated_shaders")
+set(CAMEL_ENGINE_ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 file(MAKE_DIRECTORY "${CAMEL_ENGINE_SHADER_BINARY_DIR}")
 
 add_custom_command(
@@ -44,7 +46,11 @@ add_custom_target(camel_engine_shaders DEPENDS
 
 add_library(CamelEngine STATIC
     src/Logger.cpp
+    src/Primitive.cpp
+    src/VulkanBuffer.cpp
+    src/VulkanCommandExecutor.cpp
     src/VulkanDevice.cpp
+    src/VulkanDescriptors.cpp
     src/VulkanDepthBuffer.cpp
     src/VulkanFramebuffers.cpp
     src/VulkanImageViews.cpp
@@ -55,21 +61,23 @@ add_library(CamelEngine STATIC
     src/VulkanRenderer.cpp
     src/VulkanSurface.cpp
     src/VulkanSwapchain.cpp
+    src/VulkanTexture.cpp
 )
 
 add_dependencies(CamelEngine camel_engine_shaders)
 
 target_include_directories(CamelEngine
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    PRIVATE ${Vulkan_INCLUDE_DIR}
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/external/stb" ${Vulkan_INCLUDE_DIR}
 )
 
 target_compile_definitions(CamelEngine PRIVATE
     CAMEL_ENGINE_SHADER_DIR="${CAMEL_ENGINE_SHADER_BINARY_DIR}"
+    CAMEL_ENGINE_ASSET_DIR="${CAMEL_ENGINE_ASSET_DIR}"
 )
 
 target_link_libraries(CamelEngine
-    PUBLIC SDL3::SDL3 Vulkan::Vulkan
+    PUBLIC SDL3::SDL3 glm::glm Vulkan::Vulkan
 )
 
 add_executable(Camel-Engine src/main.cpp)
@@ -77,6 +85,7 @@ target_link_libraries(Camel-Engine PRIVATE CamelEngine)
 add_dependencies(Camel-Engine camel_engine_shaders)
 target_compile_definitions(Camel-Engine PRIVATE
     CAMEL_ENGINE_SHADER_DIR="${CAMEL_ENGINE_SHADER_BINARY_DIR}"
+    CAMEL_ENGINE_ASSET_DIR="${CAMEL_ENGINE_ASSET_DIR}"
 )
 set_target_properties(Camel-Engine PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"

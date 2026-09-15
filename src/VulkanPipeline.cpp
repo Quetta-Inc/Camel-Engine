@@ -1,6 +1,8 @@
 #include "camel/VulkanPipeline.hpp"
 
 #include "camel/Logger.hpp"
+#include "camel/VulkanTypes.hpp"
+
 #include <array>
 #include <fstream>
 #include <stdexcept>
@@ -12,6 +14,7 @@ VulkanPipeline::VulkanPipeline(
     std::filesystem::path shaderDirectory
 )
     : deviceCore(device), renderPassCore(renderPass) {
+    createDescriptorSetLayout();
     createGraphicsPipeline(extent, shaderDirectory);
     Logger::log(Logger::LogLevel::Info, "Graphics pipeline created.");
 }
@@ -20,6 +23,9 @@ VulkanPipeline::~VulkanPipeline() {
     const VkDevice device = deviceCore.getDevice();
     if (graphicsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, graphicsPipeline, nullptr);
     if (pipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    if (descriptorSetLayout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+    }
 }
 
 std::vector<char> VulkanPipeline::readFile(const std::filesystem::path& filename) {
@@ -57,6 +63,34 @@ VkShaderModule VulkanPipeline::createShaderModule(const std::vector<char>& code)
     return shaderModule;
 }
 
+void VulkanPipeline::createDescriptorSetLayout() {
+    VkDescriptorSetLayoutBinding uniformBinding{};
+    uniformBinding.binding = 0;
+    uniformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uniformBinding.descriptorCount = 1;
+    uniformBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutBinding samplerBinding{};
+    samplerBinding.binding = 1;
+    samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerBinding.descriptorCount = 1;
+    samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    const std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
+        uniformBinding, samplerBinding
+    };
+    VkDescriptorSetLayoutCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    createInfo.pBindings = bindings.data();
+
+    if (vkCreateDescriptorSetLayout(
+            deviceCore.getDevice(), &createInfo, nullptr, &descriptorSetLayout
+        ) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create descriptor set layout");
+    }
+}
+
 void VulkanPipeline::createGraphicsPipeline(
     VkExtent2D extent,
     const std::filesystem::path& shaderDirectory
@@ -82,8 +116,23 @@ void VulkanPipeline::createGraphicsPipeline(
         vertexStage, fragmentStage
     };
 
+    VkVertexInputBindingDescription binding{};
+    binding.binding = 0;
+    binding.stride = sizeof(Vertex);
+    binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    const std::array<VkVertexInputAttributeDescription, 3> attributes = {{
+        {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)},
+        {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)},
+        {0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord)}
+    }};
+
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInput.vertexBindingDescriptionCount = 1;
+    vertexInput.pVertexBindingDescriptions = &binding;
+    vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
+    vertexInput.pVertexAttributeDescriptions = attributes.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -131,8 +180,16 @@ void VulkanPipeline::createGraphicsPipeline(
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
 
+    VkPushConstantRange pushConstant{};
+    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstant.size = sizeof(glm::mat4);
+
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layoutInfo.setLayoutCount = 1;
+    layoutInfo.pSetLayouts = &descriptorSetLayout;
+    layoutInfo.pushConstantRangeCount = 1;
+    layoutInfo.pPushConstantRanges = &pushConstant;
     if (vkCreatePipelineLayout(
             deviceCore.getDevice(), &layoutInfo, nullptr, &pipelineLayout
         ) != VK_SUCCESS) {
