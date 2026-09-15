@@ -27,6 +27,7 @@ protected:
     void start() override {
         camera.position = {0.0f, 3.5f, 8.0f};
         camera.setDirection({0.0f, -0.25f, -1.0f});
+        setMouseLock(false);
 
         player = addPrimitive(Primitive::createCube(), {0.0f, 0.0f, 0.0f});
         player->transform.scale = {0.8f, 0.8f, 0.8f};
