@@ -84,7 +84,7 @@ target_link_libraries(CamelEngine
     PUBLIC SDL3::SDL3 glm::glm Vulkan::Vulkan
 )
 
-add_executable(Camel-Engine src/main.cpp)
+add_executable(Camel-Engine main.cpp)
 target_link_libraries(Camel-Engine PRIVATE CamelEngine)
 add_dependencies(Camel-Engine camel_engine_shaders)
 target_compile_definitions(Camel-Engine PRIVATE
