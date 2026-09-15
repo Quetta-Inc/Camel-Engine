@@ -1,110 +1,144 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.20)
 
-project(Camel-Engine CXX)
+project(Camel-Engine VERSION 1.0.0 LANGUAGES CXX)
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-enable_testing()
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(CAMEL_ENGINE_BUILD_TESTS "Build Camel Engine unit and smoke tests" ON)
 
 find_package(SDL3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
 
-find_program(GLSLANG_VALIDATOR NAMES glslangValidator HINTS "$ENV{VULKAN_SDK}/Bin" "D:/VulkanSDK/Bin" "D:/VulkanSDK/1.4.357.0/Bin")
+find_program(GLSLANG_VALIDATOR
+    NAMES glslangValidator
+    HINTS "$ENV{VULKAN_SDK}/Bin" "D:/VulkanSDK/Bin" "D:/VulkanSDK/1.4.357.0/Bin"
+)
 
 if(NOT GLSLANG_VALIDATOR)
     message(FATAL_ERROR "glslangValidator not found in PATH or VULKAN_SDK")
 endif()
 
-set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Shaders)
-set(TEXTURE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/texture.png)
+set(CAMEL_ENGINE_SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders")
+set(CAMEL_ENGINE_SHADER_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated_shaders")
+set(CAMEL_ENGINE_ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets")
 
-if(NOT EXISTS ${TEXTURE_FILE})
-    message(FATAL_ERROR "Required texture is missing: ${TEXTURE_FILE}")
-endif()
-
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders)
+file(MAKE_DIRECTORY "${CAMEL_ENGINE_SHADER_BINARY_DIR}")
 
 add_custom_command(
     OUTPUT
-        ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/frag.spv
-    COMMAND ${GLSLANG_VALIDATOR} -V ${SHADER_DIR}/triangle.vert -o ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/vert.spv
-    COMMAND ${GLSLANG_VALIDATOR} -V ${SHADER_DIR}/triangle.frag -o ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/frag.spv
-    DEPENDS ${SHADER_DIR}/triangle.vert ${SHADER_DIR}/triangle.frag
-    COMMENT "Compiling Vulkan triangle shaders"
+        "${CAMEL_ENGINE_SHADER_BINARY_DIR}/vert.spv"
+        "${CAMEL_ENGINE_SHADER_BINARY_DIR}/frag.spv"
+    COMMAND "${GLSLANG_VALIDATOR}" -V "${CAMEL_ENGINE_SHADER_SOURCE_DIR}/triangle.vert"
+            -o "${CAMEL_ENGINE_SHADER_BINARY_DIR}/vert.spv"
+    COMMAND "${GLSLANG_VALIDATOR}" -V "${CAMEL_ENGINE_SHADER_SOURCE_DIR}/triangle.frag"
+            -o "${CAMEL_ENGINE_SHADER_BINARY_DIR}/frag.spv"
+    DEPENDS
+        "${CAMEL_ENGINE_SHADER_SOURCE_DIR}/triangle.vert"
+        "${CAMEL_ENGINE_SHADER_SOURCE_DIR}/triangle.frag"
+    COMMENT "Compiling Vulkan shaders"
     VERBATIM
 )
 
-add_custom_target(vulkan_shaders DEPENDS
-    ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/vert.spv
-    ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/frag.spv
+add_custom_target(camel_engine_shaders DEPENDS
+    "${CAMEL_ENGINE_SHADER_BINARY_DIR}/vert.spv"
+    "${CAMEL_ENGINE_SHADER_BINARY_DIR}/frag.spv"
 )
 
-add_executable(Camel-Engine
-    main.cpp
-    Source/Engine.cpp
-    Source/VulkanDevice.cpp
-    Source/VulkanSwapchain.cpp
-    Source/VulkanPipeline.cpp
-    Source/VulkanRenderer.cpp
-    Source/VulkanBuffer.cpp
-    Source/VulkanTexture.cpp
-    Source/Log.cpp
-    Headers/Vulkan.hpp
-    Source/Camera.cpp
-    Source/Primitive.cpp
-)
-add_dependencies(${PROJECT_NAME} vulkan_shaders)
-
-add_custom_command(
-    TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/vert.spv
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/vert.spv
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_BINARY_DIR}/generated_shaders/frag.spv
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/frag.spv
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${TEXTURE_FILE}
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/texture.png
-    COMMENT "Copying shaders to executable directory"
+set(CAMEL_ENGINE_SOURCES
+    src/Camera.cpp
+    src/Engine.cpp
+    src/Logger.cpp
+    src/Primitive.cpp
+    src/VulkanBuffer.cpp
+    src/VulkanCommandExecutor.cpp
+    src/VulkanDepthBuffer.cpp
+    src/VulkanDevice.cpp
+    src/VulkanFramebuffers.cpp
+    src/VulkanImageViews.cpp
+    src/VulkanInstance.cpp
+    src/VulkanPhysicalDevice.cpp
+    src/VulkanPipeline.cpp
+    src/VulkanRenderPass.cpp
+    src/VulkanRenderer.cpp
+    src/VulkanSurface.cpp
+    src/VulkanSwapchain.cpp
+    src/VulkanTexture.cpp
+    src/VulkanDescriptors.cpp
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-    CAMEL_ENGINE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
-    CAMEL_ENGINE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
-    CAMEL_ENGINE_SHADER_DIR="$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-    CAMEL_ENGINE_ASSET_DIR="$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+add_library(CamelEngine STATIC ${CAMEL_ENGINE_SOURCES})
+add_dependencies(CamelEngine camel_engine_shaders)
+
+target_include_directories(CamelEngine
+    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/external/stb" ${Vulkan_INCLUDE_DIR}
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+target_compile_definitions(CamelEngine PRIVATE
+    CAMEL_ENGINE_SHADER_DIR="${CAMEL_ENGINE_SHADER_BINARY_DIR}"
+    CAMEL_ENGINE_ASSET_DIR="${CAMEL_ENGINE_ASSET_DIR}"
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${Vulkan_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/Dependencies/stb
+target_link_libraries(CamelEngine
+    PUBLIC SDL3::SDL3 glm::glm Vulkan::Vulkan
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
-target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm ${Vulkan_LIBRARIES})
-
-add_test(
-    NAME shader_artifacts
-    COMMAND ${CMAKE_COMMAND}
-        "-DVERT_SHADER=$<TARGET_FILE_DIR:${PROJECT_NAME}>/vert.spv"
-        "-DFRAG_SHADER=$<TARGET_FILE_DIR:${PROJECT_NAME}>/frag.spv"
-        "-DTEXTURE_FILE=$<TARGET_FILE_DIR:${PROJECT_NAME}>/texture.png"
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/Tests/verify_shaders.cmake
+add_executable(Camel-Engine src/main.cpp)
+target_link_libraries(Camel-Engine PRIVATE CamelEngine)
+add_dependencies(Camel-Engine camel_engine_shaders)
+set_target_properties(Camel-Engine PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:Camel-Engine>"
 )
 
-add_test(
-    NAME vulkan_controls_smoke
-    COMMAND $<TARGET_FILE:${PROJECT_NAME}> --smoke-test
-)
+enable_testing()
 
-set_tests_properties(vulkan_controls_smoke shader_artifacts PROPERTIES
-    WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-    TIMEOUT 30
-)
+if(CAMEL_ENGINE_BUILD_TESTS)
+    add_executable(camel_test_primitive tests/PrimitiveTests.cpp)
+    target_link_libraries(camel_test_primitive PRIVATE CamelEngine)
+
+    add_executable(camel_test_camera tests/CameraTests.cpp)
+    target_link_libraries(camel_test_camera PRIVATE CamelEngine)
+
+    add_executable(camel_test_scene tests/SceneTests.cpp)
+    target_link_libraries(camel_test_scene PRIVATE CamelEngine)
+
+    add_executable(camel_test_logger tests/LoggerTests.cpp)
+    target_link_libraries(camel_test_logger PRIVATE CamelEngine)
+
+    add_executable(camel_test_vulkan_policy tests/VulkanPolicyTests.cpp)
+    target_link_libraries(camel_test_vulkan_policy PRIVATE CamelEngine)
+
+    add_executable(camel_test_vulkan_components tests/VulkanComponentsTests.cpp)
+    target_link_libraries(camel_test_vulkan_components PRIVATE CamelEngine)
+    add_dependencies(camel_test_vulkan_components camel_engine_shaders)
+    target_compile_definitions(camel_test_vulkan_components PRIVATE
+        CAMEL_ENGINE_TEST_SHADER_DIR="${CAMEL_ENGINE_SHADER_BINARY_DIR}"
+        CAMEL_ENGINE_TEST_ASSET_DIR="${CAMEL_ENGINE_ASSET_DIR}"
+    )
+
+    add_test(NAME primitive_unit COMMAND camel_test_primitive)
+    add_test(NAME camera_unit COMMAND camel_test_camera)
+    add_test(NAME scene_unit COMMAND camel_test_scene)
+    add_test(NAME logger_unit COMMAND camel_test_logger)
+    add_test(NAME vulkan_policy_unit COMMAND camel_test_vulkan_policy)
+    add_test(NAME vulkan_components_smoke COMMAND camel_test_vulkan_components)
+    add_test(NAME engine_smoke COMMAND Camel-Engine --smoke-test)
+
+    add_test(
+        NAME shader_and_asset_artifacts
+        COMMAND ${CMAKE_COMMAND}
+            "-DVERT_SHADER=${CAMEL_ENGINE_SHADER_BINARY_DIR}/vert.spv"
+            "-DFRAG_SHADER=${CAMEL_ENGINE_SHADER_BINARY_DIR}/frag.spv"
+            "-DTEXTURE_FILE=${CAMEL_ENGINE_ASSET_DIR}/texture.png"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_shaders.cmake"
+    )
+
+    set_tests_properties(
+        vulkan_components_smoke engine_smoke shader_and_asset_artifacts
+        PROPERTIES TIMEOUT 30
+    )
+endif()

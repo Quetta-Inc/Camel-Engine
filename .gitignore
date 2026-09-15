@@ -3,3 +3,6 @@
 /build-*
 /build_*
 /cmake-build-*
+/out
+/.vs
+*.spv
