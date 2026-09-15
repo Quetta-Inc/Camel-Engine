@@ -45,6 +45,8 @@ add_custom_target(camel_engine_shaders DEPENDS
 )
 
 add_library(CamelEngine STATIC
+    src/Camera.cpp
+    src/Engine.cpp
     src/Logger.cpp
     src/Primitive.cpp
     src/VulkanBuffer.cpp
